@@ -74,9 +74,21 @@ cargo build --release
 
 
 ## Docker
-Wise choice. There is a docker image here `TODO` which you can pull from. Else, you can build your own by running the
-below commands
+Wise choice. There is a docker image here `ghcr.io/devmaster24/shelly_smartplug_exporter:v0.1.0` which you can leverage. 
 
+Quick start with docker:
+```bash
+docker run \
+  --name shelly_smartpluge_exporter \
+  -p 9001:9001 \
+  ghcr.io/devmaster24/shelly_smartplug_exporter:v0.1.0 \
+  -i 10.0.0.2 \
+  -i 10.0.0.3 \
+  -m 10.0.0.2:some-plug-name \
+  -m 10.0.0.3:another-plug-name
+```
+
+To build your own image run the below commands:
 ```bash
 # Ensure you are in the directory with the `Dockerfile` file present
 docker build -t shelly_smartplug_exporter:latest .
