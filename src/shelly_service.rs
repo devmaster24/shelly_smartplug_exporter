@@ -1,5 +1,4 @@
 ﻿use std::time::Duration;
-use chrono::Utc;
 use log::error;
 use reqwest::Client;
 use serde_json::Value;
@@ -44,14 +43,12 @@ pub async fn get_metrics(plugs: &Vec<ShellySmartPlug>) -> Result<String, &str> {
 
 fn convert_to_prometheus(http_data: Value, alias: &String) -> String {
     format!(
-r"current_datetime{{hostname={alias}}} {datetime}
-power_watts{{hostname={alias}}} {power_watts}
-voltage{{hostname={alias}}} {voltage}
-current_amps{{hostname={alias}}} {current}
-temperature_celsius{{hostname={alias}}} {temp_c}
-temperature_fahrenheit{{hostname={alias}}} {temp_f}
-running_total_power_consumed_watts{{hostname={alias}}} {total_watts}",
-        datetime = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+r#"power_watts{{hostname="{alias}"}} {power_watts}
+voltage{{hostname="{alias}"}} {voltage}
+current_amps{{hostname="{alias}"}} {current}
+temperature_celsius{{hostname="{alias}"}} {temp_c}
+temperature_fahrenheit{{hostname="{alias}"}} {temp_f}
+running_total_power_consumed_watts{{hostname="{alias}"}} {total_watts}"#,
         power_watts = http_data["apower"],
         voltage = http_data["voltage"],
         current = http_data["current"],
@@ -174,18 +171,21 @@ mod tests {
             .await;
 
         let actual = get_metrics(&plugs).await.unwrap();
-        let act_arr = actual.split("\n").collect::<Vec<&str>>();
 
-        // Check that the \n logic works to combine multiple entries properly
-        assert_eq!(act_arr[1], "power_watts{hostname=alias1} 1.0");
-        assert_eq!(act_arr[6], "running_total_power_consumed_watts{hostname=alias1} 45645634.12");
-        assert_eq!(act_arr[13], "running_total_power_consumed_watts{hostname=alias2} 45645634.12");
-
-        assert!(actual.contains("power_watts{hostname=alias2} 1.0"));
-        assert!(actual.contains("current_amps{hostname=alias1} 3.0"));
-        assert!(actual.contains("temperature_celsius{hostname=alias1} 20.1"));
-        assert!(actual.contains("temperature_fahrenheit{hostname=alias1} 68.2"));
-        assert!(actual.contains("voltage{hostname=alias1} 2.0"));
-        assert!(actual.contains("current_datetime{hostname=alias1}"));
+        assert_eq!(actual,
+r#"power_watts{hostname="alias1"} 1.0
+voltage{hostname="alias1"} 2.0
+current_amps{hostname="alias1"} 3.0
+temperature_celsius{hostname="alias1"} 20.1
+temperature_fahrenheit{hostname="alias1"} 68.2
+running_total_power_consumed_watts{hostname="alias1"} 45645634.12
+power_watts{hostname="alias2"} 1.0
+voltage{hostname="alias2"} 2.0
+current_amps{hostname="alias2"} 3.0
+temperature_celsius{hostname="alias2"} 20.1
+temperature_fahrenheit{hostname="alias2"} 68.2
+running_total_power_consumed_watts{hostname="alias2"} 45645634.12"#
+        );
     }
 }
+
